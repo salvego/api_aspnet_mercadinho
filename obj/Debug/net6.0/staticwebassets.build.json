@@ -1,0 +1,37 @@
+{
+  "Version": 1,
+  "Hash": "CkJDuqQ4mSPra6E9oxyQoSWMHgsW09znvspmwak4vQA=",
+  "Source": "Mercadinho",
+  "BasePath": "_content/Mercadinho",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [
+    {
+      "Name": "Mercadinho\\wwwroot",
+      "Source": "Mercadinho",
+      "ContentRoot": "C:\\dev\\api-aspnet-mercadinho\\wwwroot\\",
+      "BasePath": "_content/Mercadinho",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": [
+    {
+      "Identity": "C:\\dev\\api-aspnet-mercadinho\\wwwroot\\images\\f404bcc5-030c-478a-8c67-4c0c61f21253.jpg",
+      "SourceId": "Mercadinho",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\dev\\api-aspnet-mercadinho\\wwwroot\\",
+      "BasePath": "_content/Mercadinho",
+      "RelativePath": "images/f404bcc5-030c-478a-8c67-4c0c61f21253.jpg",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\images\\f404bcc5-030c-478a-8c67-4c0c61f21253.jpg"
+    }
+  ]
+}
