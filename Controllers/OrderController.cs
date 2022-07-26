@@ -2,6 +2,7 @@ using Mercadinho.Data;
 using Mercadinho.Models;
 using Mercadinho.Models.ViewModels.CartItems;
 using Mercadinho.Models.ViewModels.Categories;
+using Mercadinho.Models.ViewModels.Orders;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,9 +13,8 @@ namespace Mercadinho.Controllers
         [HttpPost("v1/checkout")]
         public async Task<IActionResult> PostOrderAsync(
             [FromServices] MercadinhoDataContext context,
-            //[FromBody] EditorCartItemsViewModel model,
             [FromQuery] int page = 0,
-            [FromQuery] int pageSize = 25)
+            [FromQuery] int pageSize = 100)
         {
             try
             {
@@ -30,7 +30,7 @@ namespace Mercadinho.Controllers
                         ProductId = x.ProductId,
                         Quantity = x.Quantity,
                         PriceUnit = x.PriceUnit,
-                        UnMed = x.UnMed                        
+                        UnMed = x.UnMed
                     })
                     .Skip(page * pageSize)
                     .Take(pageSize)
@@ -39,17 +39,18 @@ namespace Mercadinho.Controllers
 
                 var total = 0.0;
 
-                foreach(var item in cart_items){
-                    
+                foreach (var item in cart_items)
+                {
+
                     total += item.Quantity * item.PriceUnit;
-                
+
                 }
 
                 if (count == 0)
-                     return NotFound(new ResultViewModel<CartItems>("Carrinho não contém itens"));
+                    return NotFound(new ResultViewModel<CartItems>("Carrinho não contém itens"));
 
                 var dueSeconds = 3600;
-                var due =  DateTime.Now.AddSeconds(dueSeconds);
+                var due = DateTime.Now.AddSeconds(dueSeconds);
 
                 var order = new Order
                 {
@@ -64,8 +65,9 @@ namespace Mercadinho.Controllers
 
                 var saveOrder = order.Id;
 
-                foreach(var item in cart_items){
-                    
+                foreach (var item in cart_items)
+                {
+
                     var orderItem = new OrderItem
                     {
                         OrderId = saveOrder,
@@ -88,18 +90,6 @@ namespace Mercadinho.Controllers
 
                 return Created($"v1/checkout/{order.Id}", new ResultViewModel<Order>(order));
 
-
-
-                
-
-
-                // return Ok(new ResultViewModel<dynamic>(new
-                // {
-                //     total = count,
-                //     page,
-                //     pageSize,
-                //     cart_items
-                // }));
             }
             catch
             {
@@ -107,125 +97,94 @@ namespace Mercadinho.Controllers
             }
         }
 
-        // [HttpGet("v1/cart_items/{id:int}")]
-        // public async Task<IActionResult> GetByIdAsync(
-        //     [FromRoute] int id,
-        //     [FromServices] MercadinhoDataContext context)
-        // {
-        //     try
-        //     {
-        //         var cartItem = await context
-        //             .CartItems
-        //             .Include(x=> x.Product)
-        //             .FirstOrDefaultAsync(x => x.ProductId == id);
+        [HttpGet("v1/orders")]
+        public async Task<IActionResult> GetOrdersAsync(
+            [FromServices] MercadinhoDataContext context,
+            [FromQuery] int page = 0,
+            [FromQuery] int pageSize = 100)
+        {
+            try
+            {
+                var count = await context.Orders.AsNoTracking().CountAsync();
+                var orders = await context
+                    .Orders
+                    .AsNoTracking()
+                    .Select(x => new ListOrdersViewModel
+                    {
+                        OrderId = x.Id,
+                        CreatedDateTime = x.CreatedDateTime,
+                        StatusOrder = x.StatusOrder,
+                        Total = x.Total
+                    })
+                    .Skip(page * pageSize)
+                    .Take(pageSize)
+                    .OrderByDescending(x => x.OrderId)
+                    .ToListAsync();
 
-        //         if (cartItem == null)
-        //             return NotFound(new ResultViewModel<CartItems>("Conteúdo não encontrado"));
+                return Ok(new ResultViewModel<dynamic>(new
+                {
+                    total = count,
+                    page,
+                    pageSize,
+                    orders
+                }));
+            }
+            catch
+            {
+                return StatusCode(500, new ResultViewModel<List<CartItems>>("05X04 - Falha interna no servidor"));
+            }
+        }
 
-        //         return Ok(new ResultViewModel<CartItems>(cartItem));
-        //     }
-        //     catch
-        //     {
-        //         return StatusCode(500, new ResultViewModel<CartItems>("Falha interna no servidor"));
-        //     }
-        // }
+        [HttpGet("v1/orders/{id:int}")]
+        public async Task<IActionResult> GetByIdAsync(
+            [FromRoute] int id,
+            [FromServices] MercadinhoDataContext context)
+        {
+            try
+            {
+                var order = await context
+                    .Orders
+                    .FirstOrDefaultAsync(x => x.Id == id);
 
-        // [HttpPost("v1/cart_items")]
-        // public async Task<IActionResult> PostAsync(
-        //     [FromBody] EditorCartItemsViewModel model,
-        //     [FromServices] MercadinhoDataContext context)
-        // {
-        //     if (!ModelState.IsValid)
-        //         return BadRequest(new ResultViewModel<CartItems>(ModelState.GetErrors()));
+                if (order == null)
+                    return NotFound(new ResultViewModel<Order>("Conteúdo não encontrado"));
 
-        //     try
-        //     {
-        //         var cart_item = new CartItems
-        //         {
-        //             CartId = 1,
-        //             ProductId = model.ProductId,
-        //             Quantity = model.Quantity,
-        //             PriceUnit = model.PriceUnit,
-        //             UnMed = model.UnMed
-        //         };
-        //         await context.CartItems.AddAsync(cart_item);
-        //         await context.SaveChangesAsync();
+                return Ok(new ResultViewModel<Order>(order));
+            }
+            catch
+            {
+                return StatusCode(500, new ResultViewModel<Order>("Falha interna no servidor"));
+            }
+        }
 
-        //         return Created($"v1/cart_items/{cart_item.CartId}", new ResultViewModel<CartItems>(cart_item));
-        //     }
-        //     catch (DbUpdateException ex)
-        //     {
-        //         return StatusCode(500, new ResultViewModel<CartItems>("05XE9 - Não foi possível incluir o carrinho"));
-        //     }
-        //     catch
-        //     {
-        //         return StatusCode(500, new ResultViewModel<CartItems>("05X10 - Falha interna no servidor"));
-        //     }
-        // }
+        [HttpGet("v1/ordersItems/{id:int}")]
+        public async Task<IActionResult> GetOrdersItemsAsync(
+            [FromRoute] int id,
+            [FromServices] MercadinhoDataContext context)
+        {
+            try
+            {
+                var ordersItems = await context
+                    .OrderItems
+                    .Where(x => x.OrderId == id)
+                    .ToListAsync();
 
-        // [HttpPut("v1/cart_items/{cartid:int}/{productid:int}")]
-        // public async Task<IActionResult> PutAsync(
-        //     [FromRoute] int cartid,
-        //     [FromRoute] int productid,
-        //     [FromBody] EditorCartItemsViewModel model,
-        //     [FromServices] MercadinhoDataContext context)
-        // {
-        //     try
-        //     {
-        //         var cart_item = await context
-        //             .CartItems
-        //             .FirstOrDefaultAsync(x => x.CartId == cartid && x.ProductId == productid);
+                if (ordersItems == null)
+                    return NotFound(new ResultViewModel<OrderItem>("Conteúdo não encontrado"));
 
-        //         if (cart_item == null)
-        //             return NotFound(new ResultViewModel<CartItems>("Conteúdo não encontrado"));
+                var count = ordersItems.Count();
 
-        //         cart_item.Quantity = model.Quantity;
-        //         cart_item.PriceUnit = model.PriceUnit;
-        //         cart_item.UnMed = model.UnMed;
+                return Ok(new ResultViewModel<dynamic>(new
+                {
+                    total = count,
+                    ordersItems
+                }));
+            }
+            catch
+            {
+                return StatusCode(500, new ResultViewModel<OrderItem>("Falha interna no servidor"));
+            }
+        }
 
-        //         context.CartItems.Update(cart_item);
-        //         await context.SaveChangesAsync();
-
-        //         return Ok(new ResultViewModel<CartItems>(cart_item));
-        //     }
-        //     catch (DbUpdateException ex)
-        //     {
-        //         return StatusCode(500, new ResultViewModel<CartItems>("05XE8 - Não foi possível alterar o carrinho"));
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //         return StatusCode(500, new ResultViewModel<CartItems>("05X11 - Falha interna no servidor"));
-        //     }
-        // }
-
-        // [HttpDelete("v1/cart_items/{cartid:int}/{productid:int}")]
-        // public async Task<IActionResult> DeleteAsync(
-        //     [FromRoute] int cartid,
-        //     [FromRoute] int productid,
-        //     [FromServices] MercadinhoDataContext context)
-        // {
-        //     try
-        //     {
-        //         var cart_item = await context
-        //             .CartItems
-        //             .FirstOrDefaultAsync(x => x.CartId == cartid && x.ProductId == productid);
-
-        //         if (cart_item == null)
-        //             return NotFound(new ResultViewModel<CartItems>("Conteúdo não encontrado"));
-
-        //         context.CartItems.Remove(cart_item);
-        //         await context.SaveChangesAsync();
-
-        //         return Ok(new ResultViewModel<CartItems>(cart_item));
-        //     }
-        //     catch (DbUpdateException ex)
-        //     {
-        //         return StatusCode(500, new ResultViewModel<CartItems>("05XE7 - Não foi possível excluir o carrinho"));
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //         return StatusCode(500, new ResultViewModel<CartItems>("05X12 - Falha interna no servidor"));
-        //     }
-        // }
     }
 }
